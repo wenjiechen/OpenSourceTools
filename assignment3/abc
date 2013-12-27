@@ -1,0 +1,42 @@
+#!/bin/bash
+	del=$1
+	file=${2:-/dev/stdin}
+
+        # 1. minimum number of columns per line
+	numOfColumn=$(awk -F $del 'BEGIN { m=9999;}
+	{ if ( NF < m ) m = NF	}
+	END{ print m }' $file)
+	
+	# 2. turn each column into a separate file
+	rm -rf tmp
+	mkdir tmp
+
+	if [ $numOfColumn -eq 1 ]
+	then 
+		cat $file > tmp/1
+	else
+		for i in $(seq $numOfColumn)
+		do
+			cut -d $del -f $i $file > "tmp/${i}"  	
+		done
+        	lastColumn=$(( $numOfColumn + 1 ))
+		cut -d $del -f ${lastColumn}- $file > "tmp/lastColumn"  	
+		# 3. create file save delimiter
+		echo $del > tmp/d
+	fi
+
+	# 4. encode files into signal file using pax 
+	pax -w tmp/* > tmp/encode		
+	
+	# 5. gzip
+	
+	if [ $file = "/dev/stdin" ] 
+	then
+		gzip -f < tmp/encode > tmp/output
+		cat tmp/output
+	else
+		output=$( echo $file | sed 's/.*\/\([a-zA-Z]\{1,\}[^\/]*\)/\1/' )
+		gzip < tmp/encode > "${output}.abc"
+	fi
+		
+	rm -rf tmp

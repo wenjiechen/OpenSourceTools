@@ -1,0 +1,51 @@
+#!/bin/bash
+
+file=${1:-/dev/stdin}
+
+# 1. gunzip archive
+rm -rf tmp
+mkdir tmp
+gunzip -cf $file > decompression.tmp
+
+# 2. pax archive
+pax -r < decompression.tmp
+rm -rf decompression.tmp
+
+# 3. reda delimeter; paste columns together
+fileNum=$(ls tmp | sort -n | awk 'BEGIN{max=0;} /[0-9]/{ if($0 > max) max = $0}END{print max}')
+cd tmp
+if [ $fileNum -ne 1 ]
+then
+	del=$( cat d )
+	fileList=$( echo $( seq $fileNum ) )
+	#paste 1,2,3..
+	paste -d $del $fileList > "output"  
+	#append the last column
+	#appendLast
+else
+	cat 1 > "output"
+fi
+cd ..
+
+# 4. output
+if [ $file = "/dev/stdin" ]
+then
+	output="/dev/stdout"
+elif [[ $file = *\.abc ]]
+then
+	output=$( echo $file | sed 's/\(.*\)\.abc/\1/' )
+	if [ -s $output ]
+	then
+		output=${output}.cba
+	fi 
+else
+	output=${file}.cba
+fi
+
+if [ $file = "/dev/stdin" ]
+then
+	cat tmp/output
+else
+	cat tmp/output > "$output"
+fi
+rm -rf tmp

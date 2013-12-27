@@ -1,0 +1,22 @@
+#!/bin/bash
+file=${1:-/dev/stdin}
+dels=(',' '|' ':' ';' '#');
+min=999999999
+for del in ${dels[@]}
+do
+	ret=$( ./abc $del < $file | wc -c )
+	echo $ret
+	if [ $min -gt $ret ]
+	then
+		min=$ret
+		delimiter=$del
+	fi
+done
+retzip=$( gzip < $file | wc -c )
+echo 'gzip' $retzip
+if [ $retzip -gt $min ]
+then
+	echo abc \'$delimiter\' $file
+else
+	echo gzip $file
+fi
